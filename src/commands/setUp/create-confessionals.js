@@ -41,6 +41,7 @@ module.exports = {
         let trustedRoleId;
         let productionRoleId;
 
+        //FIXME: still not working with new optional params
         console.log(interaction.options.get('trusted-specs-role') !== null);
         if (interaction.options.get('trusted-specs-role') !== null) {
             trustedRoleId = interaction.options.get('trusted-specs-role').value;
