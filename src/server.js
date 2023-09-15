@@ -20,7 +20,7 @@ const client = new Client({
 (async () => {
     try {
         // await mongoose.connect(process.env.MONGODB_URI);
-        // console.log("Connected to DB 🤖 ...")
+        console.log("Connected to Server 🤖 ...")
 
 
         eventHandler(client);
