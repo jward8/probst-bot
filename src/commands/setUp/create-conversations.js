@@ -1,8 +1,8 @@
 const { ApplicationCommandOptionType, ChannelType, PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
-    name: 'create-confessionals',
-    description: 'Create confessionals for select users',
+    name: 'create-conversations',
+    description: 'Create in-server conversations channels',
     options: [
         {
             name: 'target-role',
@@ -19,13 +19,13 @@ module.exports = {
         {
             name: 'trusted-specs-role',
             description: "The trusted spectator role that needs access to confessionals",
-            required: false,
+            required: true,
             type: ApplicationCommandOptionType.Role,
         },
         {
             name: 'production-role',
             description: "The production role that needs access to confessionals",
-            required: false,
+            required: true,
             type: ApplicationCommandOptionType.Role,
         },
     ],
@@ -47,7 +47,8 @@ module.exports = {
             trustedRoleId = interaction.options.get('trusted-specs-role').value;
             additionalPerms.push({
                 id: trustedRoleId,
-                allow: [PermissionFlagsBits.ViewChannel]
+                allow: [PermissionFlagsBits.ViewChannel],
+                deny: [PermissionFlagsBits.SendMessages]
             })
         }
         if (interaction.options.get('production-role') !== null) {
@@ -64,22 +65,32 @@ module.exports = {
                     let roleMembers = members.filter(m => m.roles.cache.get(targetRoleId));
                     let usedMembers = [];
                     let categoryNaming = interaction.options.get('category-naming');
-                    let category = await guild.channels.create({name: `${categoryNaming.value} ${categoriesCreated}`, type: ChannelType.GuildCategory });
+                    let generalPerms = [
+                        {
+                            id: guild.roles.everyone,
+                            deny: [PermissionFlagsBits.ViewChannel]
+                        },
+                        {
+                            id: interaction.user.id,
+                            allow: [PermissionFlagsBits.ViewChannel]
+                        }
+                    ];
+                    let category = await guild.channels.create({
+                        name: `${categoryNaming.value} ${categoriesCreated}`,
+                        type: ChannelType.GuildCategory,
+                        permissionOverwrites: generalPerms 
+                    });
                     for (let mem of roleMembers) {
                         for (let otherMem of roleMembers) {
                             if (otherMem[1].user.id === mem[1].user.id || usedMembers.includes(otherMem[1].user.id)) {
                                 continue;
                             } else {
-                                if ( channelsCreated % 50 === 0) {
+                                if ( channelsCreated % 50 === 0 && channelsCreated !== 0) {
                                     ++categoriesCreated;
-                                    category = await guild.channels.create({name: `${categoryNaming.value} ${categoriesCreated}`, type: ChannelType.GuildCategory });
+                                    category = await guild.channels.create({name: `${categoryNaming.value} ${categoriesCreated}`, type: ChannelType.GuildCategory, permissionOverwrites: generalPerms });
                                 }
 
                                 let perms = [
-                                    {
-                                        id: guild.roles.everyone,
-                                        deny: [PermissionFlagsBits.ViewChannel]
-                                    },
                                     {
                                         id: mem[1].user.id,
                                         allow: [PermissionFlagsBits.ViewChannel]
@@ -88,11 +99,7 @@ module.exports = {
                                         id: otherMem[1].user.id,
                                         allow: [PermissionFlagsBits.ViewChannel]
                                     },
-                                    {
-                                        id: interaction.user.id,
-                                        allow: [PermissionFlagsBits.ViewChannel]
-                                    }
-                                ];
+                                ].concat(generalPerms);
 
                                 guild.channels.create({
                                     name: mem[1].user.username + '-' + otherMem[1].user.username,
